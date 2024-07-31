@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 function App() {
   const [states, setStates] = useState([]);
-  const [zoom, setZoom] = useState(3.5);
+  const [zoom, setZoom] = useState(3);
   const [mapCenter, setMapCenter] = useState([50, -120]);
   const [color, setColor] = useState("rgb(0 120 255)");
   const onReset = () => {
