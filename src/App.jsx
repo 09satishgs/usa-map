@@ -8,12 +8,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 function App() {
   const [states, setStates] = useState([]);
-  const [zoom, setZoom] = useState(3);
+  const [zoom, setZoom] = useState(3.5);
   const [mapCenter, setMapCenter] = useState([50, -120]);
   const [color, setColor] = useState("rgb(0 120 255)");
+  const [dashArray, setDashArray] = useState(4);
   const onReset = () => {
     setStates(usaStatesData.features);
-    setZoom(3.5);
+    setZoom(3);
     setMapCenter([50, -120]);
   };
   useEffect(() => {
@@ -83,13 +84,24 @@ function App() {
           type="checkbox"
         ></input>
       </label>
+      <label style={{ position: "absolute", top: "300px", right: "50px" }}>
+        <input
+          type="number"
+          style={{ padding: "4px 16px", height: "40px" }}
+          value={dashArray}
+          onChange={(e) => {
+            setDashArray(e.target.value);
+          }}
+        />
+      </label>
       <MapContainer zoom={zoom} center={mapCenter} doubleClickZoom={false}>
         <GeoJSON
           style={(state) => {
-            console.log(state);
             return {
+              dashArray: dashArray,
+              color: "black",
               fillColor: color,
-              fillOpacity: getStateWeight(state.id) * 4 || 0,
+              fillOpacity: getStateWeight(state.id) * 3 || 0,
             };
           }}
           key={states?.length}
@@ -103,7 +115,7 @@ function App() {
                 </div>
                 <div>
                   <b>No of fallouts:</b>
-                  {Math.ceil(25 * getStateWeight(feature.id))}
+                  {Math.floor(25 * getStateWeight(feature.id))}
                 </div>
               </div>
             );
