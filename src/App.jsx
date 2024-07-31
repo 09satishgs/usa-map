@@ -9,13 +9,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 function App() {
   const [states, setStates] = useState([]);
   const [zoom, setZoom] = useState(3.5);
-  const [mapCenter, setMapCenter] = useState([50, -120]);
+  const [mapCenter, setMapCenter] = useState([55, -120]);
   const [color, setColor] = useState("rgb(0 120 255)");
   const [dashArray, setDashArray] = useState(4);
   const onReset = () => {
     setStates(usaStatesData.features);
-    setZoom(3);
-    setMapCenter([50, -120]);
+    setZoom(3.5);
+    setMapCenter([55, -120]);
   };
   useEffect(() => {
     setStates(usaStatesData.features);
