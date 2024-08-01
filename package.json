@@ -4,6 +4,7 @@
   "homepage": "https://09satishgs.github.io/usa-map",
   "private": true,
   "dependencies": {
+    "@react-google-maps/api": "^2.19.3",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -15,6 +16,7 @@
     "react-responsive-modal": "^6.4.2",
     "react-scripts": "5.0.1",
     "react-usa-map": "^1.5.0",
+    "use-places-autocomplete": "^4.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
