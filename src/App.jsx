@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LeafletMap from "./LeafletMap";
 import GoogleMaps from "./GoogleMaps";
+import OpenLayers from "./OpenLayers";
 
 const App = () => {
   const [inputMap, setInputMap] = useState("");
@@ -21,9 +22,12 @@ const App = () => {
           <option value="">None</option>
           <option value={"lm"}>Leaflet Map</option>
           <option value={"gm"}> Google Map</option>
+          <option value={"ol"}> Open Layers</option>
         </select>
       </div>
     );
+  }else if (/ol/i.test(inputMap)) {
+    return <OpenLayers reset={setInputMap} />;
   } else if (/lm/i.test(inputMap)) {
     return <LeafletMap reset={setInputMap} />;
   } else {
