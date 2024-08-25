@@ -12,8 +12,9 @@ import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import { usaStatesData } from "./files/us-states";
+import { XYZ } from "ol/source";
 
-const apiResponse = {
+const MOCK_DATA = {
   "AL": 0.324,
   "AK": 0.091,
   "AZ": 0.472,
@@ -70,10 +71,11 @@ const apiResponse = {
 const OpenLayers = ({ reset }) => {
   const defaultCenter = [-10839037.385053677, 4772642.164568035];
 
+  const [apiResponse,setApiResponse]=useState(MOCK_DATA)
   const [zoom, setZoom] = useState(5);
   const [center, setCenter] = useState(defaultCenter);
   const [lastChange, setLastChange] = useState(0);
-  const [showTiles, setShowTiles] = useState(false);
+  const [tileNum, setTileNum] = useState(0);
   const [dynamicList, setDynamicList] = useState(usaStatesData);
   const mapRef = useRef(null);
   useEffect(() => {
@@ -82,9 +84,13 @@ const OpenLayers = ({ reset }) => {
         featureProjection: "EPSG:3857",
       }),
     });
-    const tileLayer = showTiles?{
-      source: new OSM()
-    }:{};
+    const tilesArr = [{},{ source: new OSM()},{source:new XYZ({
+      url: 'https://mt{0-3}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      attributions: '© Google Maps',
+      crossOrigin: 'anonymous',
+      maxZoom: 19,
+    })}]
+    const tileLayer = tilesArr?.[tileNum]
     const osmLayers = [
       new TileLayer(tileLayer),
       new VectorLayer({
@@ -95,10 +101,10 @@ const OpenLayers = ({ reset }) => {
             width: 2,
           }),
           fill: new Fill({
-            color: `rgb(24, 50, 202,${apiResponse?.[feature?.getId()]})`,
+            color: `rgb(24, 50, 202,${apiResponse?.[feature?.getId()]??0})`,
           }),
           text:  new Text({
-            text: showTiles?"":feature?.get('name')
+            text: tileNum?"":feature?.get('name')
           }) 
         }),
       }),
@@ -127,7 +133,7 @@ const OpenLayers = ({ reset }) => {
       });
     });
     return () => map.setTarget(null);
-  }, [zoom, center, dynamicList,showTiles, lastChange]);
+  }, [zoom, center, dynamicList,tileNum,apiResponse, lastChange]);
   return [
     <div
       style={{
@@ -171,11 +177,18 @@ const OpenLayers = ({ reset }) => {
     </button>,
     <button
       onClick={() => {
-        setShowTiles(val=>!val)
+        setTileNum(val=>((val+1)%3))
       }}
     >
       Change Tiles
     </button>,
+        <button
+        onClick={() => {
+          setApiResponse((val)=>!!val?null:MOCK_DATA)
+        }}
+      >
+       Show Intensity
+      </button>,
   ];
 };
 
