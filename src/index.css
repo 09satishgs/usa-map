@@ -16,7 +16,7 @@ select {
 }
 label {
   font-weight: 700;
-  font-size: x-large;
+  font-size: large;
 }
 select,
 option {
