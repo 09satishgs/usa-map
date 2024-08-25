@@ -1,6 +1,6 @@
 // OpenLayers.js
 import React, { useEffect, useRef, useState } from "react";
-import { Map, View } from "ol";
+import { Map, Overlay, View } from "ol";
 import OSM from "ol/source/OSM";
 import GeoJSON from "ol/format/GeoJSON";
 import "ol/ol.css";
@@ -13,6 +13,7 @@ import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import { usaStatesData } from "./files/us-states";
 import { XYZ } from "ol/source";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const MOCK_DATA = {
   AL: 0.324,
@@ -76,7 +77,14 @@ const OpenLayers = ({ reset }) => {
   const [lastChange, setLastChange] = useState(0);
   const [tileNum, setTileNum] = useState(0);
   const [dynamicList, setDynamicList] = useState(usaStatesData);
+  const tooltipRef =useRef();
   const mapRef = useRef(null);
+  const resetMap=() => {
+    setDynamicList(usaStatesData);
+    setZoom(5);
+    setCenter(defaultCenter);
+    setLastChange(Date.now());
+  }
   useEffect(() => {
     const vectorSource = new VectorSource({
       features: new GeoJSON().readFeatures(dynamicList, {
@@ -111,7 +119,7 @@ const OpenLayers = ({ reset }) => {
               color: `rgb(24, 50, 202,${apiResponse?.[feature?.getId()] ?? 0})`,
             }),
             text: new Text({
-              text: (tileNum&&false) ? "" : feature?.getId(),
+              text: (tileNum) ? "" : feature?.getId(),
               font: "12px Calibri,sans-serif",
               fill: new Fill({
                 color: "#fff",
@@ -133,19 +141,55 @@ const OpenLayers = ({ reset }) => {
     view.setZoom(zoom);
     view.setCenter(center);
     map.setView(view);
+    const tooltip = document.createElement('div');
+    tooltipRef.current = tooltip;
+
+    const overlay = new Overlay({
+      element: tooltip,
+      offset: [15, 0],
+      positioning: 'center-left',
+    });
+    map.addOverlay(overlay);
+
+    map.on('pointermove', (evt) => {
+      const feature2 = map.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
+      if (feature2) {
+        
+        tooltip.innerHTML = renderToStaticMarkup(
+        <div className="ol-tooltip" >
+          <h1>{feature2?.getId()+":"+feature2?.get('name')}</h1>
+          <div>
+            <b>No Of Maintenance:</b>
+            <span>{MOCK_DATA?.[feature2?.getId()]*1000}</span>
+          </div>
+        </div>
+        );
+        overlay.setPosition(evt.coordinate);
+        tooltip.style.display = 'block';
+      } else {
+        tooltip.style.display = 'none';
+      }
+    });
+   
     map.on("click", (event) => {
-      setCenter(event.coordinate);
-      setZoom(6);
-      map.forEachFeatureAtPixel(event.pixel, (feature) => {
+      let featureClicked = map.forEachFeatureAtPixel(event.pixel, (feature) => {
         const stateName = feature.get("name");
         setDynamicList((list) => {
-          let features = list.features;
+          let features = list?.features;
           let newFeatures = features?.find(
             (a) => a?.properties?.name === stateName
           );
           return { type: "FeatureCollection", features: [newFeatures] };
         });
+      return !!feature;
       });
+      if(!featureClicked){
+        resetMap()
+      }
+      else if(dynamicList?.features?.length>1){
+        setCenter(event.coordinate);
+        setZoom(6);
+      }
     });
     return () => map.setTarget(null);
   }, [zoom, center, dynamicList, tileNum, apiResponse, lastChange]);
@@ -174,12 +218,7 @@ const OpenLayers = ({ reset }) => {
       -
     </button>,
     <button
-      onClick={() => {
-        setDynamicList(usaStatesData);
-        setZoom(5);
-        setCenter(defaultCenter);
-        setLastChange(Date.now());
-      }}
+      onClick={resetMap}
     >
       reset
     </button>,
@@ -197,16 +236,9 @@ const OpenLayers = ({ reset }) => {
     >
       Change Tiles
     </button>,
-    // <button
-    //   onClick={() => {
-        
-    //   }}
-    // >
-    //   Show Intensity
-    // </button>,
     <>
-    <span htmlFor="show-intensity">Intensity</span>
-    <input id="show-intensity" type="checkbox" onChange={()=>{
+    <span>no color</span>
+    <input type="checkbox" onChange={()=>{
       setApiResponse((val) => (!!val ? null : MOCK_DATA));
     }} value={!!apiResponse}/></>
   ];

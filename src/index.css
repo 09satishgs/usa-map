@@ -23,3 +23,12 @@ option {
   font-size: x-large;
   text-indent: 12px;
 }
+.ol-tooltip {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #d8dde6;
+  background-color: white;
+  h1 {
+    margin: 0;
+  }
+}
