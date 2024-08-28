@@ -1,6 +1,6 @@
 // OpenLayers.js
 import React, { useEffect, useRef, useState } from "react";
-import { Map, Overlay, View } from "ol";
+import { Feature, Map, Overlay, View } from "ol";
 import OSM from "ol/source/OSM";
 import GeoJSON from "ol/format/GeoJSON";
 import "ol/ol.css";
@@ -14,7 +14,10 @@ import Style from "ol/style/Style";
 import { usaStatesData } from "./files/us-states";
 import { XYZ } from "ol/source";
 import { renderToStaticMarkup } from "react-dom/server";
-
+import { Point } from "ol/geom";
+import { fromLonLat } from "ol/proj";
+import Icon from "ol/style/Icon";
+import image from './files/image.svg';
 const MOCK_DATA = {
   AL: 0.324,
   AK: 0.091,
@@ -91,6 +94,30 @@ const OpenLayers = ({ reset }) => {
         featureProjection: "EPSG:3857",
       }),
     });
+    let i=0;
+    let j=0;
+    let markersList=[];
+    while(i<29){
+      while(j<12){
+        let marker = new Feature({
+          geometry: new Point(fromLonLat([ -120.224121+(i*Math.random()),35.876019+j])), 
+          name: `${-120.224121+i},${35.876019+j}` 
+        })
+        let markerStyle = new Style({
+          image: new Icon({
+            anchor: [0.5, 1],
+            src: image, 
+          }),
+        });
+        marker.setStyle(markerStyle);
+        markersList.push(marker)
+       
+        j=j+2*Math.random()
+      }
+      i=i+5*Math.random();
+      j=0;
+    }
+    vectorSource.addFeatures(markersList)
     const tilesArr = [
       {},
       { source: new OSM() },
@@ -152,16 +179,20 @@ const OpenLayers = ({ reset }) => {
     map.addOverlay(overlay);
 
     map.on('pointermove', (evt) => {
-      const feature2 = map.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
-      if (feature2) {
+      const featureObject = map.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
+      if (featureObject) {
         
         tooltip.innerHTML = renderToStaticMarkup(
         <div className="ol-tooltip" >
-          <h1>{feature2?.getId()+":"+feature2?.get('name')}</h1>
+          {featureObject?.getId()?<>
+          <h1>{featureObject?.getId()+":"+featureObject?.get('name')}</h1>
           <div>
             <b>No Of Maintenance:</b>
-            <span>{MOCK_DATA?.[feature2?.getId()]*1000}</span>
+            <span>{MOCK_DATA?.[featureObject?.getId()]*1000}</span>
           </div>
+          </>:
+          <h1>{featureObject.get("name")}</h1>
+          }
         </div>
         );
         overlay.setPosition(evt.coordinate);
