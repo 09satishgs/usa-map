@@ -20,6 +20,7 @@ import blueIcon from "./files/blue-marker.svg";
 import redIcon from "./files/red-marker.svg";
 import greenIcon from "./files/green-marker.svg";
 import yellowIcon from "./files/yellow-marker.svg";
+import { XYZ } from "ol/source";
 
 let icons = [blueIcon,redIcon,greenIcon,"https://openlayers.org/en/latest/examples/data/icon.png"];
 const MOCK_DATA = {
@@ -489,11 +490,32 @@ const getZoomAndCenter=(extent)=> {
     center: [centerX, centerY],
   };
 }
+const getStateExtent=(extentData)=>{
+  const [minX, minY, maxX, maxY] = extentData;
+
+  let maxLength=0;
+  
+  const extentWidth = maxX - minX;
+  const extentHeight = maxY - minY;
+  const centerPointX = (minX+maxX)/2;
+  const centerPointY=(minY+maxY)/2;
+  if(extentHeight>extentWidth){
+    maxLength=extentHeight;
+  }
+  else{
+    maxLength=extentWidth;
+  }
+  maxLength=maxLength*1.1;
+  const newExtent = [(centerPointX-(maxLength/2)),(centerPointY-(maxLength/2)),(centerPointX+(maxLength/2)),(centerPointY+(maxLength/2))];
+  return newExtent;
+}
+const DEFAULT_EXTENT=[-18264876.2734375, 1078300.9230225036, -7054995.800835057, 7638394.811067935];
 const OpenLayers = ({ reset }) => {
   const defaultCenter = [-10839037.385053677, 4772642.164568035];
   const [selectedState, setSelectedState] = useState(null);
   const [apiResponse, setApiResponse] = useState(MOCK_DATA);
   const [zoom, setZoom] = useState(1);
+  const [extent, setExtent] = useState(DEFAULT_EXTENT);
   const [center, setCenter] = useState(defaultCenter);
   const [tileNum, setTileNum] = useState(0);
   const [dynamicList, setDynamicList] = useState(usaStatesData);
@@ -514,6 +536,7 @@ const OpenLayers = ({ reset }) => {
     setTileNum(0);
     setApiResponse(MOCK_DATA);
     setSelectedState(null);
+    setExtent(DEFAULT_EXTENT);
   };
   useEffect(() => {
     const vectorSource = new VectorSource({
@@ -556,35 +579,39 @@ const OpenLayers = ({ reset }) => {
       new VectorLayer({
         source: vectorSource,
         style: (feature) =>
-          new Style({
-            stroke: new Stroke({
-              color: "black",
-              width: 3,
-              lineDash: [6, 4],
-            }),
+        [   new Style({
+          stroke: new Stroke({
+            color: 'rgba(0, 0, 0, 0.2)', // Shadow color with transparency
+            width: 10, // Wider stroke for the shadow effect
+          }),
+        }),new Style({
+          stroke: new Stroke({
+            color: "black",
+            width: 3,
+            lineCap:"round"
+          }),
+          fill: new Fill({
+            color: `rgb(24, 50, 202,${apiResponse?.[feature?.getId()] ?? 0})`,
+          }),
+          text: new Text({
+            text: tileNum ? "" : feature?.getId(),
+            font: "12px Calibri,sans-serif",
             fill: new Fill({
-              color: `rgb(24, 50, 202,${apiResponse?.[feature?.getId()] ?? 0})`,
+              color: "#fff",
             }),
-            text: new Text({
-              text: tileNum ? "" : feature?.getId(),
-              font: "12px Calibri,sans-serif",
-              fill: new Fill({
-                color: "#fff",
-              }),
-              stroke: new Stroke({
-                color: "#000",
-                width: 5,
-              }),
+            stroke: new Stroke({
+              color: "#000",
+              width: 5,
             }),
           }),
+        }),]
       }),
     ];
-
     const map = new Map({
       target: mapRef.current,
       layers: [...osmLayers],
     });
-    let view = new View({extent: [-18264876.2734375, 1878300.9230225036, -7054995.800835057, 6838394.811067935]});
+    let view = new View({extent: extent});
     view.setZoom(zoom);
     view.setCenter(center);
     map.setView(view);
@@ -636,15 +663,18 @@ const OpenLayers = ({ reset }) => {
     });
 
     map.on("click", (event) => {
-      let zoomAndCenter = { zoom: 5, center: [0, 0] };
+      let stateExtent = [0 ,0 ,0, 0];
+      // let zoomAndCenter = { zoom: 5, center: [0, 0] };
       let featureClicked = map.forEachFeatureAtPixel(event.pixel, (feature) => {
         if (feature.get("props")) {
           window.open(`https://www.google.com/search?q=${event.pixel}`)
           return true;
         }
-        zoomAndCenter = getZoomAndCenter(feature.getGeometry().getExtent());
+        // zoomAndCenter = getZoomAndCenter(feature.getGeometry().getExtent());
+        stateExtent=getStateExtent(feature.getGeometry().getExtent())
         const stateName = feature.get("name");
         setSelectedState(feature?.getId());
+        getStateExtent(feature.getGeometry().getExtent())
         setApiResponse({});
         setTileNum(1);
         setDynamicList((list) => {
@@ -659,8 +689,9 @@ const OpenLayers = ({ reset }) => {
       if (!featureClicked) {
         resetMap();
       } else if (dynamicList?.features?.length > 1) {
-        setCenter(zoomAndCenter.center);
-        setZoom(zoomAndCenter.zoom);
+        // setCenter(zoomAndCenter.center);
+        // setZoom(zoomAndCenter.zoom);
+        setExtent(stateExtent)
       }
     });
     return () => map.setTarget(null);
@@ -673,6 +704,7 @@ const OpenLayers = ({ reset }) => {
     selectedState,
     MOCK_DATA_2,
     stateSelected,
+    extent
   ]);
   useEffect(()=>{
     if(dynamicList?.features?.length>1){
@@ -684,12 +716,12 @@ const OpenLayers = ({ reset }) => {
   return [
     <div
       style={{
-        height: "calc(100vh - 20px - 150px)",
-        width: "calc(100vw - 150px)",
+        height: "calc(100vh - 125px)",
+        width: "calc(100vh - 125px)",
         padding: 50,
       }}
       ref={mapRef}
-      className="map-container"
+      className="ol-map map-container"
     />,
     <button
       onClick={() => {

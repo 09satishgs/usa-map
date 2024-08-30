@@ -29,13 +29,19 @@ option {
   border: 1px solid #d8dde6;
   background-color: white;
 }
+.ol-map{
+  cursor: pointer;
+}
+.ol-map :active{
+  cursor: grab;
+}
 .ol-tooltip .container{
   padding: 16px;
 }
 .ol-tooltip h1,.ol-tooltip h3 {
   margin: 0;
 }
-.ol-tooltip::before{
+/* .ol-tooltip::before{
   position: absolute;
   bottom: -20px;
   height: 0px;
@@ -45,4 +51,10 @@ option {
   transform: rotateZ(180deg);
   border-bottom-color: #fff;
   content: "";
-}
+} */
+/* .map-container .ol-layer canvas {
+  filter: blur(4px); 
+  position: absolute;
+  top: 0;
+  left: 0;
+} */
