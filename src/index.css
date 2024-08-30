@@ -24,7 +24,8 @@ option {
   text-indent: 12px;
 }
 .ol-tooltip {
-  border-radius: 16px;
+  position: relative;
+  border-radius: 16px 16px 0 16px;
   border: 1px solid #d8dde6;
   background-color: white;
 }
@@ -33,4 +34,15 @@ option {
 }
 .ol-tooltip h1,.ol-tooltip h3 {
   margin: 0;
+}
+.ol-tooltip::before{
+  position: absolute;
+  bottom: -20px;
+  height: 0px;
+  width: 0;
+  right: -1.5px;
+  border: 10px solid transparent;
+  transform: rotateZ(180deg);
+  border-bottom-color: #fff;
+  content: "";
 }

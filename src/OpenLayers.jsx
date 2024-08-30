@@ -594,8 +594,8 @@ const OpenLayers = ({ reset }) => {
 
     const overlay = new Overlay({
       element: tooltip,
-      offset: [15, 0],
-      positioning: "center-left",
+      offset: [10, -10],
+      positioning: "bottom-right",
     });
     map.addOverlay(overlay);
 
@@ -639,7 +639,7 @@ const OpenLayers = ({ reset }) => {
       let zoomAndCenter = { zoom: 5, center: [0, 0] };
       let featureClicked = map.forEachFeatureAtPixel(event.pixel, (feature) => {
         if (feature.get("props")) {
-          alert("you have clicked on a circuit")
+          window.open(`https://www.google.com/search?q=${event.pixel}`)
           return true;
         }
         zoomAndCenter = getZoomAndCenter(feature.getGeometry().getExtent());
