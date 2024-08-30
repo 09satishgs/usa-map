@@ -13,7 +13,7 @@ import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
 import { usaStatesData } from "./files/us-states";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Point } from "ol/geom";
+import { Circle, Point } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import Icon from "ol/style/Icon";
 import blueIcon from "./files/blue-marker.svg";
@@ -491,28 +491,26 @@ const getZoomAndCenter=(extent)=> {
 }
 const OpenLayers = ({ reset }) => {
   const defaultCenter = [-10839037.385053677, 4772642.164568035];
-  const [data, setData] = useState(MOCK_DATA_2);
   const [selectedState, setSelectedState] = useState(null);
   const [apiResponse, setApiResponse] = useState(MOCK_DATA);
   const [zoom, setZoom] = useState(1);
   const [center, setCenter] = useState(defaultCenter);
-  const [lastChange, setLastChange] = useState(0);
   const [tileNum, setTileNum] = useState(0);
   const [dynamicList, setDynamicList] = useState(usaStatesData);
+  const [stateSelected, setStateSelected] = useState(false);
   const tooltipRef = useRef();
   const mapRef = useRef(null);
   let [url, setUrl] = useState("");
   useEffect(() => {
-    const jsonString = JSON.stringify(data);
+    const jsonString = JSON.stringify(MOCK_DATA_2);
     const blob = new Blob([jsonString], { type: "application/json" });
     setUrl(URL.createObjectURL(blob));
-  }, [data]);
+  }, [MOCK_DATA_2]);
 
   const resetMap = () => {
     setDynamicList(usaStatesData);
-    setZoom(5);
+    setZoom(1);
     setCenter(defaultCenter);
-    setLastChange(Date.now());
     setTileNum(0);
     setApiResponse(MOCK_DATA);
     setSelectedState(null);
@@ -524,15 +522,17 @@ const OpenLayers = ({ reset }) => {
       }),
     });
     let markersList = [];
-    Object.entries(data)?.map(([state, locations]) => {
+    Object.entries(MOCK_DATA_2)?.map(([state, locations]) => {
       if (selectedState === state || false) {
         locations.map(([lon, lat], index) => {
-          console.log(index);
-          
           let marker = new Feature({
             geometry: new Point(fromLonLat([lon, lat])),
-            name:"marker-point",
+            name:"CID-12345-"+state+"-"+index,
             props: JSON.stringify({[state]:index}),
+            tooltip: {
+              maintenanceId: state+"-"+index%4,
+              circuitId: "CID-12345-"+state+"-"+index
+            }
           });
           let markerStyle = new Style({
             image: new Icon({
@@ -548,15 +548,7 @@ const OpenLayers = ({ reset }) => {
     vectorSource.addFeatures(markersList);
     const tilesArr = [
       {},
-      { source: new OSM() },
-      {
-        // source: new XYZ({
-        //   url: "https://mt{0-3}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
-        //   attributions: "© Google Maps",
-        //   crossOrigin: "anonymous",
-        //   maxZoom: 19,
-        // }),
-      },
+      { source: new OSM() }
     ];
     const tileLayer = tilesArr?.[tileNum];
     const osmLayers = [
@@ -613,20 +605,26 @@ const OpenLayers = ({ reset }) => {
         (feature) => feature
       );
       if (featureObject) {
+        const tooltipContent=featureObject.get("tooltip");
         tooltip.innerHTML = renderToStaticMarkup(
           <div className="ol-tooltip">
             {featureObject?.getId() ? (
-              <>
-                <h1>
-                  {featureObject?.getId() + ":" + featureObject?.get("name")}
-                </h1>
-                <div>
-                  <b>No Of Maintenance:</b>
-                  <span>{MOCK_DATA?.[featureObject?.getId()] * 1000}</span>
-                </div>
-              </>
+              !stateSelected&&<div className="container">
+              <h1>
+                {featureObject?.getId() + ":" + featureObject?.get("name")}
+              </h1>
+              <div>
+                <b>No Of Maintenance:</b>
+                <span>{MOCK_DATA?.[featureObject?.getId()] * 1000}</span>
+              </div>
+              <div style={{color:"#a8dde6",textAlign:"right"}}>Click to Expand state</div>
+            </div>
             ) : (
-              <h1>{featureObject.get("name")}</h1>
+              <div className="container">
+                <h1>Maintenance ID: {tooltipContent?.maintenanceId}</h1>
+                <h3  style={{color:'gray'}}>Circuit: {tooltipContent?.circuitId}</h3>
+                <div style={{color:'#a8dde6',textAlign:"right"}}>Click to Proceed</div>
+              </div>
             )}
           </div>
         );
@@ -641,17 +639,7 @@ const OpenLayers = ({ reset }) => {
       let zoomAndCenter = { zoom: 5, center: [0, 0] };
       let featureClicked = map.forEachFeatureAtPixel(event.pixel, (feature) => {
         if (feature.get("props")) {
-          // let [state, index] = Object.entries(
-          //   JSON.parse(feature.get("props"))
-          // )?.[0];
-
-          // setData((data) => {
-          //   let temp = { ...data };
-          //   let locs = temp?.[state];
-          //   locs?.splice(index, 1);
-          //   temp[state] = locs;
-          //   return temp;
-          // });
+          alert("you have clicked on a circuit")
           return true;
         }
         zoomAndCenter = getZoomAndCenter(feature.getGeometry().getExtent());
@@ -683,9 +671,16 @@ const OpenLayers = ({ reset }) => {
     tileNum,
     apiResponse,
     selectedState,
-    data,
-    lastChange,
+    MOCK_DATA_2,
+    stateSelected,
   ]);
+  useEffect(()=>{
+    if(dynamicList?.features?.length>1){
+      setStateSelected(false)
+    }else{
+      setStateSelected(true)
+    }
+  },[dynamicList])
   return [
     <div
       style={{
