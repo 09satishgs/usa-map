@@ -628,7 +628,7 @@ const OpenLayers = ({ reset }) => {
         style: (feature) => 
           new Style({
             stroke: new Stroke({
-              color: `${stateSelected?"black":"white"}`,
+              color: `${stateSelected?"black":"#d8dde6"}`,
               width: 2,
               lineCap: "round",
             }),
