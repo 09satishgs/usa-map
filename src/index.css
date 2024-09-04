@@ -25,7 +25,6 @@ option {
 }
 .ol-tooltip {
   position: relative;
-  border-radius: 16px 16px 0 16px;
   border: 1px solid #d8dde6;
   background-color: white;
 }

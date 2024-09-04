@@ -19,8 +19,7 @@ import Icon from "ol/style/Icon";
 import blueIcon from "./files/blue-marker.svg";
 import redIcon from "./files/red-marker.svg";
 import greenIcon from "./files/green-marker.svg";
-import yellowIcon from "./files/yellow-marker.svg";
-import { XYZ } from "ol/source";
+import { ReactComponent as Hawaii } from './files/hawaii.svg';
 
 let icons = [
   blueIcon,
@@ -504,40 +503,40 @@ const getStateExtent = (extentData) => {
   const extentHeight = maxY - minY;
   const centerPointX = (minX + maxX) / 2;
   const centerPointY = (minY + maxY) / 2;
-  if (extentHeight*2 > extentWidth) {
+  if (extentHeight * 2 > extentWidth) {
     maxLength = extentHeight;
   } else {
     maxLength = extentWidth;
   }
   maxLength = maxLength * 1.1;
   const newExtent = [
-    centerPointX - maxLength*1.1 ,
+    centerPointX - maxLength * 1.1,
     centerPointY - maxLength / 2,
-    centerPointX + maxLength*1.1 ,
+    centerPointX + maxLength * 1.1,
     centerPointY + maxLength / 2,
   ];
-  return [newExtent,[centerPointX,centerPointY]];
+  return [newExtent, [centerPointX, centerPointY]];
 };
 const DEFAULT_EXTENT = [
   -14264876.2734375, 2858300.9230225036, -7054995.800835057, 6300164.811067935,
 ];
 const DEFAULT_CENTER = [-10839037.385053677, 4772642.164568035];
-const COLORS_ARRAY=[
-  "#ffffff",     //white
-  "#e3f2fd",  // Very Light Blue
-  "#bbdefb",  // Light Blue
-  "#90caf9",  // Sky Blue
-  "#64b5f6",  // Soft Blue
-  "#42a5f5",  // Moderate Blue
-  "#2196f3",  // Standard Blue
-  "#1e88e5",  // Blue
-  "#1976d2",  // Deep Blue
-  "#1565c0",  // Dark Blue
-  "#0d47a1"   // Very Dark Blue
+const COLORS_ARRAY = [
+  "#ffffff", //white
+  "#e3f2fd", // Very Light Blue
+  "#bbdefb", // Light Blue
+  "#90caf9", // Sky Blue
+  "#64b5f6", // Soft Blue
+  "#42a5f5", // Moderate Blue
+  "#2196f3", // Standard Blue
+  "#1e88e5", // Blue
+  "#1976d2", // Deep Blue
+  "#1565c0", // Dark Blue
+  "#0d47a1", // Very Dark Blue
 ];
-const getColor=(value, min=0, max=1, colors=COLORS_ARRAY)=> {
-  if(isNaN(value)){
-    return '#777'
+const getColor = (value, min = 0, max = 1, colors = COLORS_ARRAY) => {
+  if (isNaN(value)) {
+    return "#777";
   }
   const range = max - min;
   const index = Math.min(
@@ -545,6 +544,16 @@ const getColor=(value, min=0, max=1, colors=COLORS_ARRAY)=> {
     colors.length - 1
   );
   return colors[index];
+};
+const getPointerLocation = ([pixelX,pixelY])=>{
+    let [vertical,horizontal]=["bottom","right"];
+    if(pixelX<720){
+      horizontal="left"
+    }
+    if(pixelY<300){
+      vertical="top"
+    }
+    return `${vertical}-${horizontal}`;
 }
 const OpenLayers = ({ reset }) => {
   const [selectedState, setSelectedState] = useState(null);
@@ -555,23 +564,24 @@ const OpenLayers = ({ reset }) => {
   const [tileNum, setTileNum] = useState(0);
   const [dynamicList, setDynamicList] = useState(usaStatesData);
   const [stateSelected, setStateSelected] = useState(false);
+  const [pointerPosition, setPointerPosition] = useState("bottom-right");
   const tooltipRef = useRef();
   const mapRef = useRef(null);
   const divRef = useRef(null);
-  
+
   const handleEnterFullscreen = () => {
     if (mapRef.current) {
       if (mapRef.current.requestFullscreen) {
         mapRef.current.requestFullscreen();
       } else if (mapRef.current.mozRequestFullScreen) {
         mapRef.current.mozRequestFullScreen();
-      } else if (mapRef.current.webkitRequestFullscreen) { 
+      } else if (mapRef.current.webkitRequestFullscreen) {
         mapRef.current.webkitRequestFullscreen();
       } else if (mapRef.current.msRequestFullscreen) {
         mapRef.current.msRequestFullscreen();
       }
     }
-    };
+  };
   let [url, setUrl] = useState("");
   useEffect(() => {
     const jsonString = JSON.stringify(MOCK_DATA_2);
@@ -625,16 +635,18 @@ const OpenLayers = ({ reset }) => {
       new TileLayer(tileLayer),
       new VectorLayer({
         source: vectorSource,
-        style: (feature) => 
+        style: (feature) =>
           new Style({
             stroke: new Stroke({
-              color: `${stateSelected?"black":"#d8dde6"}`,
+              color: `${stateSelected ? "black" : "#d8dde6"}`,
               width: 2,
               lineCap: "round",
             }),
             fill: new Fill({
               // color: `rgb(24, 150, 152,${apiResponse?.[feature?.getId()] ?? 0})`,
-              color:stateSelected?"rgb(0,0,0,0)":getColor(apiResponse?.[feature?.getId()])
+              color: stateSelected
+                ? "rgb(0,0,0,0)"
+                : getColor(apiResponse?.[feature?.getId()]),
             }),
             text: new Text({
               text: tileNum ? "" : feature?.getId(),
@@ -661,11 +673,14 @@ const OpenLayers = ({ reset }) => {
 
     const tooltip = document.createElement("div");
     tooltipRef.current = tooltip;
-
+    const [v,h]=pointerPosition?.split("-");
     const overlay = new Overlay({
       element: tooltip,
-      offset: [10, -10],
-      positioning: "bottom-right",
+      offset: [
+        v==="bottom"?10:-10,
+         h==="right"?-10:10
+        ],
+      positioning: pointerPosition,
     });
     map.addOverlay(overlay);
 
@@ -674,6 +689,7 @@ const OpenLayers = ({ reset }) => {
         evt.pixel,
         (feature) => feature
       );
+      setPointerPosition(getPointerLocation(evt.pixel))
       if (featureObject) {
         const tooltipContent = featureObject.get("tooltip");
         tooltip.innerHTML = renderToStaticMarkup(
@@ -715,16 +731,22 @@ const OpenLayers = ({ reset }) => {
 
     map.on("click", (event) => {
       let stateExtent = [0, 0, 0, 0];
-      let newCenter = [0,0];
+      let newCenter = [0, 0];
       // let zoomAndCenter = { zoom: 5, center: [0, 0] };
       let featureClicked = map.forEachFeatureAtPixel(event.pixel, (feature) => {
         if (feature.get("props")) {
-          window.open(`https://www.google.com/maps?q=${toLonLat(event.coordinate)[1]},${toLonLat(event.coordinate)[0]}`);
+          window.open(
+            `https://www.google.com/maps?q=${toLonLat(event.coordinate)[1]},${
+              toLonLat(event.coordinate)[0]
+            }`
+          );
           return true;
         }
         // zoomAndCenter = getZoomAndCenter(feature.getGeometry().getExtent());
         stateExtent = getStateExtent(feature.getGeometry().getExtent())?.[0];
-        [stateExtent,newCenter] = getStateExtent(feature.getGeometry().getExtent());
+        [stateExtent, newCenter] = getStateExtent(
+          feature.getGeometry().getExtent()
+        );
         const stateName = feature.get("name");
         setSelectedState(feature?.getId());
         getStateExtent(feature.getGeometry().getExtent());
@@ -746,7 +768,7 @@ const OpenLayers = ({ reset }) => {
         // setZoom(zoomAndCenter.zoom);
         setExtent(stateExtent);
         setCenter(newCenter);
-        setZoom(1)
+        setZoom(1);
       }
     });
     return () => map.setTarget(null);
@@ -757,9 +779,9 @@ const OpenLayers = ({ reset }) => {
     tileNum,
     apiResponse,
     selectedState,
-    MOCK_DATA_2,
     stateSelected,
     extent,
+    pointerPosition
   ]);
   useEffect(() => {
     if (dynamicList?.features?.length > 1) {
@@ -768,66 +790,77 @@ const OpenLayers = ({ reset }) => {
       setStateSelected(true);
     }
   }, [dynamicList]);
-  return <div ref={divRef} style={{display:"flex",flexDirection:"column-reverse",alignItems:"center",justifyContent:"space-between",height:"100vh"}}>
+  return (
     <div
+      ref={divRef}
       style={{
-        height: "calc(40vw)",
-        width: "calc(80vw)",
-        padding: '12px',
-        backgroundColor:"#fff"
-      }}
-      ref={mapRef}
-      className="ol-map map-container"
-    />
-    <div>
-      
-      {[
-        <button
-      onClick={() => {
-        setZoom((z) => z + 1);
+        display: "flex",
+        flexDirection: "column-reverse",
+        alignItems: "center",
+        gap: 1,
+        height: "100vh",
       }}
     >
-      +
-    </button>,
-    <button
-      onClick={() => {
-        setZoom((z) => z - 1);
-      }}
-    >
-      -
-    </button>,
-    <button onClick={resetMap}>reset</button>,
-    <button
-      onClick={() => {
-        reset();
-      }}
-    >
-      Change map
-    </button>,
-    <button
-      onClick={() => {
-        setTileNum((val) => (val + 1) % 2);
-      }}
-    >
-      Change Tiles
-    </button>,
-    <a download={"data.json"} href={url}>
-      log data
-    </a>,
-    <>
-      <span>no color</span>
-      <input
-        type="checkbox"
-        onChange={() => {
-          setApiResponse((val) => (!!val ? null : MOCK_DATA));
+      <div className="">
+      <div
+        style={{
+          height: "calc(40vw)",
+          width: "calc(80vw)",
+          padding: "12px",
+          backgroundColor: "#fff",
         }}
-        value={!!apiResponse}
+        ref={mapRef}
+        className="ol-map map-container"
       />
-    </>,
-    <button onClick={handleEnterFullscreen}>fullscreen</button>
-  ]}
+      <Hawaii fill={getColor(Math.random()+0.4/1.1)} height={'70px'} width={210} style={{marginLeft:50,marginTop:-300}}/>
       </div>
-  </div>;
+      <div style={{display:"flex",gap:16}}>
+        <button
+          onClick={() => {
+            setZoom((z) => z + 1);
+          }}
+        >
+          +
+        </button>
+        <button
+          onClick={() => {
+            setZoom((z) => z - 1);
+          }}
+        >
+          -
+        </button>
+        <button onClick={resetMap}>reset</button>
+        <button
+          onClick={() => {
+            reset();
+          }}
+        >
+          Change map
+        </button>
+        <button
+          onClick={() => {
+            setTileNum((val) => (val + 1) % 2);
+          }}
+        >
+          Change Tiles
+        </button>
+        <a download={"data.json"} href={url}>
+          log data
+        </a>
+        <>
+          <span>no color</span>
+          <input
+            type="checkbox"
+            onChange={() => {
+              setApiResponse((val) => (!!val ? null : MOCK_DATA));
+            }}
+            value={!!apiResponse}
+          />
+        </>
+        <button onClick={handleEnterFullscreen}>fullscreen</button>,
+      </div>
+    </div>
+  );
 };
 
 export default OpenLayers;
