@@ -25,6 +25,7 @@ option {
 }
 .ol-tooltip {
   position: relative;
+  border-radius: 32px;
   border: 1px solid #d8dde6;
   background-color: white;
 }
@@ -40,20 +41,3 @@ option {
 .ol-tooltip h1,.ol-tooltip h3 {
   margin: 0;
 }
-/* .ol-tooltip::before{
-  position: absolute;
-  bottom: -20px;
-  height: 0px;
-  width: 0;
-  right: -1.5px;
-  border: 10px solid transparent;
-  transform: rotateZ(180deg);
-  border-bottom-color: #fff;
-  content: "";
-} */
-/* .map-container .ol-layer canvas {
-  filter: blur(4px); 
-  position: absolute;
-  top: 0;
-  left: 0;
-} */

@@ -11,15 +11,14 @@ import Text from "ol/style/Text";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import Style from "ol/style/Style";
-import { usaStatesData } from "./files/us-states";
+import { usaStatesData } from "./files/us-cities";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Circle, Point } from "ol/geom";
+import {  Point } from "ol/geom";
 import { fromLonLat, toLonLat } from "ol/proj";
 import Icon from "ol/style/Icon";
 import blueIcon from "./files/blue-marker.svg";
 import redIcon from "./files/red-marker.svg";
 import greenIcon from "./files/green-marker.svg";
-import { ReactComponent as Hawaii } from './files/hawaii.svg';
 
 let icons = [
   blueIcon,
@@ -495,6 +494,11 @@ const getZoomAndCenter = (extent) => {
   };
 };
 const getStateExtent = (extentData) => {
+
+  if(!extentData){
+    return;
+  }
+
   const [minX, minY, maxX, maxY] = extentData;
 
   let maxLength = 0;
@@ -564,7 +568,7 @@ const OpenLayers = ({ reset }) => {
   const [tileNum, setTileNum] = useState(0);
   const [dynamicList, setDynamicList] = useState(usaStatesData);
   const [stateSelected, setStateSelected] = useState(false);
-  const [pointerPosition, setPointerPosition] = useState("bottom-right");
+  const [pointerPosition, setPointerPosition] = useState("bottom-left");
   const tooltipRef = useRef();
   const mapRef = useRef(null);
   const divRef = useRef(null);
@@ -646,10 +650,10 @@ const OpenLayers = ({ reset }) => {
               // color: `rgb(24, 150, 152,${apiResponse?.[feature?.getId()] ?? 0})`,
               color: stateSelected
                 ? "rgb(0,0,0,0)"
-                : getColor(apiResponse?.[feature?.getId()]),
+                : getColor(apiResponse?.[feature?.getId()?.toUpperCase()]),
             }),
             text: new Text({
-              text: tileNum ? "" : feature?.getId(),
+              text: tileNum ? "" : feature?.getId()?.toUpperCase(),
               font: "11px Calibri,sans-serif",
               fill: new Fill({
                 color: "#fff",
@@ -666,7 +670,9 @@ const OpenLayers = ({ reset }) => {
       target: mapRef.current,
       layers: [...osmLayers],
     });
-    let view = new View({ extent: extent });
+    let view = new View({ 
+      extent: extent
+     });
     view.setZoom(zoom);
     view.setCenter(center);
     map.setView(view);
@@ -689,7 +695,7 @@ const OpenLayers = ({ reset }) => {
         evt.pixel,
         (feature) => feature
       );
-      setPointerPosition(getPointerLocation(evt.pixel))
+      // setPointerPosition(getPointerLocation(evt.pixel))
       if (featureObject) {
         const tooltipContent = featureObject.get("tooltip");
         tooltip.innerHTML = renderToStaticMarkup(
@@ -698,11 +704,11 @@ const OpenLayers = ({ reset }) => {
               !stateSelected && (
                 <div className="container">
                   <h1>
-                    {featureObject?.getId() + ":" + featureObject?.get("name")}
+                    {featureObject?.getId()?.toUpperCase() + ":" + featureObject?.get("name")}
                   </h1>
                   <div>
                     <b>No Of Maintenance:</b>
-                    <span>{MOCK_DATA?.[featureObject?.getId()] * 1000}</span>
+                    <span>{MOCK_DATA?.[featureObject?.getId()?.toUpperCase()] * 1000}</span>
                   </div>
                   <div style={{ color: "#a8dde6", textAlign: "right" }}>
                     Click to Expand state
@@ -733,34 +739,38 @@ const OpenLayers = ({ reset }) => {
       let stateExtent = [0, 0, 0, 0];
       let newCenter = [0, 0];
       // let zoomAndCenter = { zoom: 5, center: [0, 0] };
-      let featureClicked = map.forEachFeatureAtPixel(event.pixel, (feature) => {
-        if (feature.get("props")) {
-          window.open(
-            `https://www.google.com/maps?q=${toLonLat(event.coordinate)[1]},${
-              toLonLat(event.coordinate)[0]
-            }`
-          );
-          return true;
+      let feature = map.forEachFeatureAtPixel(event.pixel, (feat) => {
+        if(feat?.getId()?.toUpperCase()==="HI"){
+         return vectorSource?.getFeatureById("HI");
         }
-        // zoomAndCenter = getZoomAndCenter(feature.getGeometry().getExtent());
-        stateExtent = getStateExtent(feature.getGeometry().getExtent())?.[0];
-        [stateExtent, newCenter] = getStateExtent(
-          feature.getGeometry().getExtent()
-        );
-        const stateName = feature.get("name");
-        setSelectedState(feature?.getId());
-        getStateExtent(feature.getGeometry().getExtent());
-        setApiResponse({});
-        setTileNum(1);
-        setDynamicList((list) => {
-          let features = list?.features;
-          let newFeatures = features?.find(
-            (a) => a?.properties?.name === stateName
-          );
-          return { type: "FeatureCollection", features: [newFeatures] };
-        });
-        return !!feature;
+        return feat;
       });
+      if (feature?.get("props")) {
+        window.open(
+          `https://www.google.com/maps?q=${toLonLat(event.coordinate)[1]},${
+            toLonLat(event.coordinate)[0]
+          }`
+        );
+        return true;
+      }
+      // zoomAndCenter = getZoomAndCenter(feature?.getGeometry().getExtent());
+      stateExtent = getStateExtent(feature?.getGeometry().getExtent())?.[0];
+      [stateExtent, newCenter] = getStateExtent(
+        feature?.getGeometry().getExtent()
+      )||[null,null];
+      const stateName = feature?.get("name");
+      setSelectedState(feature?.getId());
+      getStateExtent(feature?.getGeometry().getExtent());
+      setApiResponse({});
+      setTileNum(1);
+      setDynamicList((list) => {
+        let features = list?.features;
+        let newFeatures = features?.find(
+          (a) => a?.properties?.name === stateName
+        );
+        return { type: "FeatureCollection", features: [newFeatures] };
+      });
+      const featureClicked=!!feature;
       if (!featureClicked) {
         resetMap();
       } else if (dynamicList?.features?.length > 1) {
@@ -812,7 +822,7 @@ const OpenLayers = ({ reset }) => {
         ref={mapRef}
         className="ol-map map-container"
       />
-      <Hawaii fill={getColor(Math.random()+0.4/1.1)} height={'70px'} width={210} style={{marginLeft:50,marginTop:-300}}/>
+      {/* <Hawaii fill={getColor(Math.random()+0.4/1.1)} height={'70px'} width={210} style={{marginLeft:50,marginTop:-300}}/> */}
       </div>
       <div style={{display:"flex",gap:16}}>
         <button
